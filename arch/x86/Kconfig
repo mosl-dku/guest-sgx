@@ -1947,6 +1947,9 @@ config INTEL_SGX_DRIVER
 	specifying the public key hash for the launch enclave are writable so
 	that Linux has the full control to run enclaves.
 
+	If the driver is enabled, the page reclaimer in the core will be
+	enabled. It reclaims pages in LRU fashion from enclaves.
+
 	For details, see Documentation/x86/intel_sgx.rst
 
 config EFI
