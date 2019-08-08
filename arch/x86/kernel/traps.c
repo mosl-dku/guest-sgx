@@ -73,6 +73,12 @@
 #include <asm/proto.h>
 #endif
 
+//by yeo
+#include <asm/io.h>
+#include <asm/pgtable.h>
+///
+
+
 DECLARE_BITMAP(system_vectors, NR_VECTORS);
 
 static inline void cond_local_irq_enable(struct pt_regs *regs)
@@ -235,13 +241,44 @@ static void show_signal(struct task_struct *tsk, int signr,
 			const char *type, const char *desc,
 			struct pt_regs *regs, long error_code)
 {
-	if (show_unhandled_signals && unhandled_signal(tsk, signr) &&
-	    printk_ratelimit()) {
-		pr_info("%s[%d] %s%s ip:%lx sp:%lx error:%lx",
+	if (show_unhandled_signals && unhandled_signal(tsk, signr) && printk_ratelimit()) 
+	{
+		pr_info("%s[%d] %s%s ip:%lx sp:%lx error:%lx signr:0x%x",
 			tsk->comm, task_pid_nr(tsk), type, desc,
-			regs->ip, regs->sp, error_code);
+			regs->ip, regs->sp, error_code,signr);//signr is 0xb
 		print_vma_addr(KERN_CONT " in ", regs->ip);
 		pr_cont("\n");
+                pgd_t * ip_pgd;
+                pgd_t * sp_pgd;
+                p4d_t * ip_p4d;
+                p4d_t * sp_p4d;
+                pud_t * ip_pud;
+                pud_t * sp_pud;
+                pmd_t * ip_pmd;
+                pmd_t * sp_pmd;
+                pte_t * ip_pte;
+                pte_t * sp_pte;
+                struct page * ip_page;
+                struct page * sp_page;
+                         
+                ip_pgd = pgd_offset(tsk->mm,regs->ip);
+                ip_p4d = p4d_offset(ip_pgd,regs->ip);
+                ip_pud = pud_offset(ip_p4d,regs->ip);
+                ip_pmd = pmd_offset(ip_pud,regs->ip);
+                ip_pte = pte_offset_map(ip_pmd,regs->ip);
+                ip_page= pte_page(*ip_pte);
+
+                sp_pgd = pgd_offset(tsk->mm,regs->sp);
+                sp_p4d = p4d_offset(sp_pgd,regs->sp);
+                sp_pud = pud_offset(sp_p4d,regs->sp);
+                sp_pmd = pmd_offset(sp_pud,regs->sp);
+                sp_pte = pte_offset_map(sp_pmd,regs->sp);
+                sp_page= pte_page(*sp_pte);
+
+                pr_info("pte:ip:0x%lx sp:0x%lx by yeo\n",ip_pte->pte,sp_pte->pte);
+                pr_info("phys:ip:0x%lx sp:0x%lx by yeo\n",page_to_phys(ip_page),page_to_phys(sp_page));
+                pr_info("pfn:ip:0x%lx sp:0x%lx by yeo end of show_signal\n",page_to_pfn(ip_page),page_to_pfn(sp_page));
+
 	}
 }
 
@@ -250,7 +287,6 @@ do_trap(int trapnr, int signr, char *str, struct pt_regs *regs,
 	long error_code, int sicode, void __user *addr)
 {
 	struct task_struct *tsk = current;
-
 
 	if (!do_trap_no_signal(tsk, trapnr, str, regs, error_code))
 		return;
@@ -573,7 +609,7 @@ do_general_protection(struct pt_regs *regs, long error_code)
 
 	show_signal(tsk, SIGSEGV, "", desc, regs, error_code);
 
-	force_sig(SIGSEGV);
+	force_sig(SIGUSR1);
 }
 NOKPROBE_SYMBOL(do_general_protection);
 
