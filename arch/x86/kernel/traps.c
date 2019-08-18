@@ -248,36 +248,6 @@ static void show_signal(struct task_struct *tsk, int signr,
 			regs->ip, regs->sp, error_code,signr);//signr is 0xb
 		print_vma_addr(KERN_CONT " in ", regs->ip);
 		pr_cont("\n");
-                pgd_t * ip_pgd;
-                pgd_t * sp_pgd;
-                p4d_t * ip_p4d;
-                p4d_t * sp_p4d;
-                pud_t * ip_pud;
-                pud_t * sp_pud;
-                pmd_t * ip_pmd;
-                pmd_t * sp_pmd;
-                pte_t * ip_pte;
-                pte_t * sp_pte;
-                struct page * ip_page;
-                struct page * sp_page;
-                         
-                ip_pgd = pgd_offset(tsk->mm,regs->ip);
-                ip_p4d = p4d_offset(ip_pgd,regs->ip);
-                ip_pud = pud_offset(ip_p4d,regs->ip);
-                ip_pmd = pmd_offset(ip_pud,regs->ip);
-                ip_pte = pte_offset_map(ip_pmd,regs->ip);
-                ip_page= pte_page(*ip_pte);
-
-                sp_pgd = pgd_offset(tsk->mm,regs->sp);
-                sp_p4d = p4d_offset(sp_pgd,regs->sp);
-                sp_pud = pud_offset(sp_p4d,regs->sp);
-                sp_pmd = pmd_offset(sp_pud,regs->sp);
-                sp_pte = pte_offset_map(sp_pmd,regs->sp);
-                sp_page= pte_page(*sp_pte);
-
-                pr_info("pte:ip:0x%lx sp:0x%lx by yeo\n",ip_pte->pte,sp_pte->pte);
-                pr_info("phys:ip:0x%lx sp:0x%lx by yeo\n",page_to_phys(ip_page),page_to_phys(sp_page));
-                pr_info("pfn:ip:0x%lx sp:0x%lx by yeo end of show_signal\n",page_to_pfn(ip_page),page_to_pfn(sp_page));
 
 	}
 }
@@ -608,8 +578,17 @@ do_general_protection(struct pt_regs *regs, long error_code)
 	tsk->thread.trap_nr = X86_TRAP_GP;
 
 	show_signal(tsk, SIGSEGV, "", desc, regs, error_code);
-
-	force_sig(SIGUSR1);
+        unsigned int ip_yeo;
+        ip_yeo=0;
+        copy_from_user(&ip_yeo,(void __user *)(regs->ip),3);
+	if(ip_yeo==0xd7010f)
+	{
+		pr_info("general protection on sgx instruction\n");
+		force_sig(SIGUSR1);
+	}
+	else{
+	force_sig(SIGSEGV);
+	}
 }
 NOKPROBE_SYMBOL(do_general_protection);
 
