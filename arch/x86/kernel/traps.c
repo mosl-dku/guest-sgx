@@ -73,10 +73,6 @@
 #include <asm/proto.h>
 #endif
 
-//by yeo
-#include <asm/io.h>
-#include <asm/pgtable.h>
-///
 
 
 DECLARE_BITMAP(system_vectors, NR_VECTORS);
@@ -533,6 +529,7 @@ do_general_protection(struct pt_regs *regs, long error_code)
 {
 	const char *desc = "general protection fault";
 	struct task_struct *tsk;
+	unsigned int sgx_instr = 0;
 
 	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
 	cond_local_irq_enable(regs);
@@ -578,16 +575,15 @@ do_general_protection(struct pt_regs *regs, long error_code)
 	tsk->thread.trap_nr = X86_TRAP_GP;
 
 	show_signal(tsk, SIGSEGV, "", desc, regs, error_code);
-        unsigned int ip_yeo;
-        ip_yeo=0;
-        copy_from_user(&ip_yeo,(void __user *)(regs->ip),3);
-	if(ip_yeo==0xd7010f)
-	{
+        copy_from_user(&sgx_instr,(void __user *)(regs->ip),3);
+	
+	if(sgx_instr==0xd7010f){
+		/* Checking the instr is enclu and force SIGUSR1 */
 		pr_info("general protection on sgx instruction\n");
 		force_sig(SIGUSR1);
-	}
-	else{
-	force_sig(SIGSEGV);
+	} else {
+		/* or force SIGSEGV */
+		force_sig(SIGSEGV);
 	}
 }
 NOKPROBE_SYMBOL(do_general_protection);
