@@ -579,7 +579,7 @@ do_general_protection(struct pt_regs *regs, long error_code)
 	
 	if(sgx_instr==0xd7010f){
 		/* Checking the instr is enclu and force SIGUSR1 */
-		pr_info("general protection on sgx instruction\n");
+		pr_info("general protection on sgx instruction @ %p\n", regs->ip);
 		force_sig(SIGUSR1);
 	} else {
 		/* or force SIGSEGV */
