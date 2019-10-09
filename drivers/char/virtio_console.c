@@ -752,8 +752,9 @@ static ssize_t port_fops_read(struct file *filp, char __user *ubuf,
 		 * case of list_empty; this tells the userspace app
 		 * that there's no connection
 		 */
-		if (!port->host_connected)
-			return 0;
+		if (!port->host_connected) {
+			return -EAGAIN;
+		}
 		if (filp->f_flags & O_NONBLOCK)
 			return -EAGAIN;
 
@@ -776,7 +777,7 @@ static ssize_t port_fops_read(struct file *filp, char __user *ubuf,
 	 * check for host_connected.
 	 */
 	if (!port_has_data(port) && !port->host_connected)
-		return 0;
+		return EAGAIN;
 
 	return fill_readbuf(port, ubuf, count, true);
 }
