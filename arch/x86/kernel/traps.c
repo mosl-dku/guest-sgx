@@ -74,6 +74,8 @@
 #endif
 
 
+struct task_struct *aesm_svc_task;
+EXPORT_SYMBOL(aesm_svc_task);
 
 DECLARE_BITMAP(system_vectors, NR_VECTORS);
 
@@ -577,7 +579,7 @@ do_general_protection(struct pt_regs *regs, long error_code)
 	show_signal(tsk, SIGSEGV, "", desc, regs, error_code);
         copy_from_user(&sgx_instr,(void __user *)(regs->ip),3);
 	
-	if(sgx_instr==0xd7010f){
+	if ((sgx_instr==0xd7010f) && (aesm_svc_task != tsk)) {
 		/* Checking the instr is enclu and force SIGUSR1 */
 		pr_info("general protection on sgx instruction @ %p\n", regs->ip);
 		force_sig(SIGUSR1);
