@@ -704,7 +704,7 @@ static ssize_t fill_readbuf(struct port *port, char __user *out_buf,
 /* The condition that must be true for polling to end */
 static bool will_read_block(struct port *port)
 {
-	if (!port->guest_connected || !port->host_connected) {
+	if (!port->guest_connected) {
 		/* Port got hot-unplugged. Let's exit. */
 		return false;
 	}
@@ -743,7 +743,7 @@ static ssize_t port_fops_read(struct file *filp, char __user *ubuf,
 	port = filp->private_data;
 
 	/* Port is hot-unplugged. */
-	if (!port->guest_connected || !port->host_connected)
+	if (!port->guest_connected)
 		return -ENODEV;
 
 	if (!port_has_data(port)) {
@@ -764,7 +764,7 @@ static ssize_t port_fops_read(struct file *filp, char __user *ubuf,
 			return ret;
 	}
 	/* Port got hot-unplugged while we were waiting above. */
-	if (!port->guest_connected || !port->host_connected)
+	if (!port->guest_connected)
 		return -ENODEV;
 	/*
 	 * We could've received a disconnection message while we were
@@ -777,7 +777,7 @@ static ssize_t port_fops_read(struct file *filp, char __user *ubuf,
 	 * check for host_connected.
 	 */
 	if (!port_has_data(port) && !port->host_connected)
-		return -EAGAIN;
+		return 0;
 
 	return fill_readbuf(port, ubuf, count, true);
 }
@@ -977,7 +977,7 @@ static __poll_t port_fops_poll(struct file *filp, poll_table *wait)
 	port = filp->private_data;
 	poll_wait(filp, &port->waitqueue, wait);
 
-	if (!port->guest_connected || !port->host_connected) {
+	if (!port->guest_connected) {
 		/* Port got unplugged */
 		return EPOLLHUP;
 	}
@@ -1436,7 +1436,7 @@ static int add_port(struct ports_device *portdev, u32 id)
 		 * rproc_serial does not want the console port, only
 		 * the generic port implementation.
 		 */
-		//port->host_connected = true;
+		port->host_connected = true;
 	}
 	else if (!use_multiport(port->portdev)) {
 		/*
