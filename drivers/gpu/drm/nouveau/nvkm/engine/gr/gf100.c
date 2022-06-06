@@ -1542,6 +1542,9 @@ gf100_gr_ctxctl_isr(struct gf100_gr *gr)
 	}
 }
 
+// GDEV IMPLEMENTS
+void (*nouveau_callback_notify)(int subc, uint32_t data) = NULL;
+
 static void
 gf100_gr_intr(struct nvkm_gr *base)
 {
@@ -1577,6 +1580,16 @@ gf100_gr_intr(struct nvkm_gr *base)
 		 * notifier interrupt, only needed for cyclestats
 		 * can be safely ignored
 		 */
+		nvkm_wr32(device, 0x400100, 0x00000001);
+		stat &= ~0x00000001;
+	}
+
+	// GDEV IMPLEMENT - RTX 2080 TI
+	if (stat & 0x00000001) { /* Gdev  */
+	    	if (nouveau_callback_notify) {
+			nouveau_callback_notify(subc, data);
+		}
+		//nv_wr32(priv, 0x400100, 0x00000001);
 		nvkm_wr32(device, 0x400100, 0x00000001);
 		stat &= ~0x00000001;
 	}

@@ -84,6 +84,7 @@ enum nouveau_drm_notify_route {
 enum nouveau_drm_handle {
 	NVDRM_CHAN    = 0xcccc0000, /* |= client chid */
 	NVDRM_NVSW    = 0x55550000,
+	NVDRM_DEVICE  = 0xdddddddd
 };
 
 struct nouveau_cli {
@@ -133,6 +134,9 @@ struct nouveau_drm {
 	struct nouveau_cli master;
 	struct nouveau_cli client;
 	struct drm_device *dev;
+
+	//gdev
+	struct nvkm_oclass *device;
 
 	struct list_head clients;
 

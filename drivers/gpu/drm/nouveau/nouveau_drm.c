@@ -118,6 +118,9 @@ nouveau_name(struct drm_device *dev)
 		return nouveau_platform_name(to_platform_device(dev->dev));
 }
 
+int nouvea_device_count = 0; /* Gdev */
+struct drm_device **nouveau_drm_device = NULL; /* Gdev */
+
 static inline bool
 nouveau_cli_work_ready(struct dma_fence *fence)
 {
@@ -555,6 +558,17 @@ nouveau_drm_device_init(struct drm_device *dev)
 	nouveau_dmem_init(drm);
 	nouveau_fbcon_init(dev);
 	nouveau_led_init(dev);
+
+	//GDEV
+	if (dev->primary->index < nouveau_device_count) {
+	    	nouveau_drm_device[dev->primary->index] = dev;
+		printk(KERN_INFO "DRM registered, index %d, count %d, dev %p\n",
+			dev->primary->index, nouveau_device_count, dev);
+	}
+	else {
+	    	printk(KERN_INFO "DRM *not* registered, index %d, count %d\n",
+			dev->primary->index, nouveau_device_count);
+	}
 
 	if (nouveau_pmops_runtime()) {
 		pm_runtime_use_autosuspend(dev->dev);
@@ -1247,9 +1261,43 @@ err_free:
 	return ERR_PTR(err);
 }
 
+//GDEV
+static int __get_device_count(void)
+{
+	struct pci_dev *pdev = NULL;
+	const struct pci_device_id *pid;
+	int i;
+	int count = 0;
+	int while_loop = 0;
+
+	for (i = 0; nouveau_drm_pci_table[i].vendor != 0; i++) {
+		pid = &nouveau_drm_pci_table[i];
+		while ((pdev = pci_get_subsys(pid->vendor, pid->device, pid->subvendor, pid->subdevice, pdev)) != NULL) {
+			while_loop++;
+			if ((pdev->class & pid->class_mask) != pid->class) {
+				continue;
+			}
+			count++; /* physical device count */
+		}
+	}
+
+	return count;
+}
+
 static int __init
 nouveau_drm_init(void)
 {
+	printk(KERN_INFO "Initializing Gdev-compatible Nouveau\n");
+ 
+ 	nouveau_device_count = __get_device_count();
+ 	nouveau_drm_device = 
+ 		kzalloc(sizeof(*nouveau_drm_device) * nouveau_device_count, GFP_KERNEL);
+ 
+ 	if (!nouveau_drm_device) {
+ 		printk(KERN_INFO "Failed to allocate nouveau drm array\n");
+ 		return -ENOMEM;
+ 	}
+
 	driver_pci = driver_stub;
 	driver_platform = driver_stub;
 

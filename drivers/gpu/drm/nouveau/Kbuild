@@ -14,6 +14,9 @@ nouveau-y := $(nvif-y)
 include $(src)/nvkm/Kbuild
 nouveau-y += $(nvkm-y)
 
+# gdev
+nouveau-y += gdev_interface.o
+
 # DRM - general
 ifdef CONFIG_X86
 nouveau-$(CONFIG_ACPI) += nouveau_acpi.o
